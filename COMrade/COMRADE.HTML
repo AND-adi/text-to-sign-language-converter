@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>COMRADE - Adaptive Interface Designer</title>
+    
+    <!-- 1. Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- 2. Three.js Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    
+    <!-- 3. Custom Styles and Font -->
+    <style>
+        /* Import the 'Inter' font */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+        /* Apply base font and dark theme */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #18181b; /* bg-zinc-900 */
+            color: #f4f4f5; /* text-zinc-100 */
+            overflow-x: hidden;
+        }
+
+        /* Style for the Three.js background canvas */
+        #three-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            opacity: 0.15; /* Subtle opacity as requested */
+        }
+
+        /* Main content must be on top of the 3D background */
+        .main-container {
+            position: relative;
+            z-index: 10;
+        }
+
+        /* Custom class for the active profile card */
+        .profile-card.active {
+            border-color: #6366f1; /* border-indigo-500 */
+            box-shadow: 0 0 15px rgba(99, 102, 241, 0.3);
+            transform: translateY(-4px);
+        }
+
+        /* Tooltip style for ADHD Focus mode */
+        .highlight-tooltip {
+            position: relative;
+            cursor: help;
+        }
+        .highlight-tooltip .tooltip-text {
+            visibility: hidden;
+            opacity: 0;
+            position: absolute;
+            z-index: 50;
+            width: 260px;
+            background-color: #18181b; /* bg-zinc-900 */
+            color: #f4f4f5; /* text-zinc-100 */
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #3f3f46; /* border-zinc-700 */
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            bottom: 125%; /* Position above the text */
+            left: 50%;
+            transform: translateX(-50%);
+            transition: opacity 0.2s ease-in-out, visibility 0.2s ease-in-out;
+            font-size: 0.875rem; /* text-sm */
+            line-height: 1.25rem;
+            font-weight: 500;
+        }
+        .highlight-tooltip:hover .tooltip-text {
+            visibility: visible;
+            opacity: 1;
+        }
+        
+        /* Small bounce animation for ASL sign cards */
+        @keyframes bounce-sm {
+            0%, 100% {
+                transform: translateY(0);
+            }
+            50% {
+                transform: translateY(-6px);
+            }
+        }
+        .animate-bounce-sm {
+            animation: bounce-sm 0.6s ease-in-out 1;
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <!-- Three.js 3D Background Container -->
+    <div id="three-bg"></div>
+
+    <!-- Main Application Container -->
+    <div class="main-container min-h-screen p-4 md:p-8 lg:p-12">
+        <div class="max-w-7xl mx-auto">
+
+            <!-- Header -->
+            <header class="text-center mb-10 md:mb-16">
+                <h1 class="text-4xl md:text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-white via-zinc-300 to-indigo-400">
+                    COMRADE
+                </h1>
+                <p class="text-lg md:text-xl text-zinc-400 mt-2">
+                    An Adaptive Interface Designer Demonstration
+                </p>
+            </header>
+
+            <!-- Control Panel: Accessibility Profiles -->
+            <section class="mb-8 md:mb-12">
+                <h2 class="text-2xl font-semibold mb-6 text-zinc-200">Select Accessibility Profile</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    
+                    <!-- Profile Card: Standard UI -->
+                    <div class="profile-card bg-zinc-800 p-6 rounded-lg border border-zinc-700 shadow-lg transition-all duration-300 hover:-translate-y-1 hover:shadow-indigo-500/10 cursor-pointer" data-profile="standard">
+                        <h3 class="text-xl font-semibold text-white mb-2">Standard UI</h3>
+                        <p class="text-zinc-400">The baseline interface with standard content and functionality.</p>
+                    </div>
+                    
+                    <!-- Profile Card: Dyslexia Support -->
+                    <div class="profile-card bg-zinc-800 p-6 rounded-lg border border-zinc-700 shadow-lg transition-all duration-300 hover:-translate-y-1 hover:shadow-indigo-500/10 cursor-pointer" data-profile="dyslexia">
+                        <h3 class="text-xl font-semibold text-white mb-2">Dyslexia Support</h3>
+                        <p class="text-zinc-400">Adjusts text spacing, size, and leading to improve readability.</p>
+                    </div>
+                    
+                    <!-- Profile Card: ADHD Focus -->
+                    <div class="profile-card bg-zinc-800 p-6 rounded-lg border border-zinc-700 shadow-lg transition-all duration-300 hover:-translate-y-1 hover:shadow-indigo-500/10 cursor-pointer" data-profile="adhd">
+                        <h3 class="text-xl font-semibold text-white mb-2">ADHD Focus</h3>
+                        <p class="text-zinc-400">Enlarges text and provides on-demand definitions for key terms.</p>
+                    </div>
+                    
+                    <!-- Profile Card: Sign Language -->
+                    <div class="profile-card bg-zinc-800 p-6 rounded-lg border border-zinc-700 shadow-lg transition-all duration-300 hover:-translate-y-1 hover:shadow-indigo-500/10 cursor-pointer" data-profile="asl">
+                        <h3 class="text-xl font-semibold text-white mb-2">Sign Language</h3>
+                        <p class="text-zinc-400">Activates a simulation for visual communication and translation.</p>
+                    </div>
+
+                </div>
+            </section>
+
+            <!-- Main Content Area: This section adapts based on the profile selected -->
+            <section id="main-content-area" class="bg-zinc-800/80 backdrop-blur-sm p-6 md:p-10 rounded-lg border border-zinc-700 min-h-[500px]">
+
+                <!-- 1. Standard UI Content -->
+                <div id="content-standard" class="content-panel">
+                    <h2 class="text-3xl font-semibold text-white mb-6 border-b border-zinc-700 pb-4">Standard Experience</h2>
+                    <p class="text-zinc-300 text-lg leading-relaxed mb-8">
+                        This view presents the standard content, including text and multimedia resources. The layout is designed for general audiences without specific accessibility modifications. Below, you'll find motivational resources related to resilience and innovation.
+                    </p>
+                    
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <!-- Video 1 -->
+                        <div class="bg-zinc-700 p-4 rounded-lg shadow-md">
+                            <div class="aspect-w-16 aspect-h-9 rounded-md overflow-hidden mb-3">
+                                <iframe src="https://www.youtube.com/embed/P-s2odA0-1A" title="Assistive Tech" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen class="w-full h-full"></iframe>
+                            </div>
+                            <h4 class="font-semibold text-white">Innovation in Accessibility</h4>
+                            <p class="text-sm text-zinc-400">Exploring new assistive technologies.</p>
+                        </div>
+                        <!-- Video 2 -->
+                        <div class="bg-zinc-700 p-4 rounded-lg shadow-md">
+                            <div class="aspect-w-16 aspect-h-9 rounded-md overflow-hidden mb-3">
+                                <iframe src="https://www.youtube.com/embed/k9zY2vGdtf0" title="Resilience" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen class="w-full h-full"></iframe>
+                            </div>
+                            <h4 class="font-semibold text-white">The Power of Resilience</h4>
+                            <p class="text-sm text-zinc-400">A short film on perseverance.</p>
+                        </div>
+                        <!-- Video 3 -->
+                        <div class="bg-zinc-700 p-4 rounded-lg shadow-md">
+                            <div class="aspect-w-16 aspect-h-9 rounded-md overflow-hidden mb-3">
+                                <iframe src="https://www.youtube.com/embed/7S-IRgMvK-E" title="Perspective" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen class="w-full h-full"></iframe>
+                            </div>
+                            <h4 class="font-semibold text-white">A Moment of Perspective</h4>
+                            <p class="text-sm text-zinc-400">Calm visuals for a mental reset.</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 2. Dyslexia Support Content -->
+                <div id="content-dyslexia" class="content-panel hidden">
+                    <h2 class="text-3xl font-semibold text-white mb-6 border-b border-zinc-700 pb-4">Dyslexia Support</h2>
+                    <p class="text-zinc-200 
+                              text-2xl              
+                              leading-loose         
+                              tracking-widest       
+                              "
+                       style="word-spacing: 0.5rem;" 
+                    >
+                        This   mode   demonstrates   UI   changes   to   assist   users   with   reading   challenges.
+                        We   have   increased   the   font   size,   letter   spacing,   word   spacing,   and   line   height.
+                        These   adjustments   help   to   separate   characters   and   words,   improving   focus   and   reducing   visual   stress.
+                        Each   of   these   parameters   can   be   finely   tuned   to   meet   the   specific   needs   of   an   individual   user.
+                    </p>
+                </div>
+
+                <!-- 3. ADHD Focus Content -->
+                <div id="content-adhd" class="content-panel hidden">
+                    <h2 class="text-3xl font-semibold text-white mb-6 border-b border-zinc-700 pb-4">ADHD Focus</h2>
+                    <div id="adhd-text-content" class="text-zinc-200 text-2xl lg:text-3xl leading-relaxed">
+                        This interface helps hold attention by providing immediate context. 
+                        Key terms are <span class="highlight-tooltip bg-yellow-300 text-zinc-900 font-semibold px-1 rounded">
+                            highlighted
+                            <span class="tooltip-text">
+                                Made to stand out visually, often with color, to draw the user's attention.
+                            </span>
+                        </span>. 
+                        Hovering over a highlighted word reveals a 
+                        <span class="highlight-tooltip bg-yellow-300 text-zinc-900 font-semibold px-1 rounded">
+                            tooltip
+                            <span class="tooltip-text">
+                                A small pop-up box that provides extra information when you hover over an item.
+                            </span>
+                        </span> 
+                        with a simple definition. This reduces the cognitive load of switching contexts to look up a word.
+                        The goal is to create an <span class="highlight-tooltip bg-yellow-300 text-zinc-900 font-semibold px-1 rounded">
+                            adaptive
+                            <span class="tooltip-text">
+                                Able to change and adjust to fit new conditions or user needs.
+                            </span>
+                        </span> 
+                        environment that clarifies information instantly. This is a 
+                        <span class="highlight-tooltip bg-yellow-300 text-zinc-900 font-semibold px-1 rounded">
+                            fundamental
+                            <span class="tooltip-text">
+                                A basic, essential, or core part of a concept or system.
+                            </span>
+                        </span> 
+                        principle of accessible design.
+                    </div>
+                </div>
+
+                <!-- 4. Sign Language Simulation Content -->
+                <div id="content-asl" class="content-panel hidden">
+                    <h2 class="text-3xl font-semibold text-white mb-6 border-b border-zinc-700 pb-4">ASL Translator Simulation</h2>
+                    <p class="text-zinc-300 text-lg leading-relaxed mb-6">
+                        This tool simulates how a text-to-sign interface might work. Type a sentence below and the system will attempt to find a matching sign. If a word isn't in our small dictionary, it will simulate "finger-spelling" by showing the first letter of the word.
+                    </p>
+                    
+                    <div class="flex flex-col md:flex-row gap-4 mb-8">
+                        <input id="asl-input" type="text" class="flex-grow bg-zinc-900 border border-zinc-700 text-zinc-100 text-lg rounded-md p-4 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none" placeholder="Type text to translate...">
+                        <button id="asl-translate-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-lg px-8 py-4 rounded-md transition-colors duration-200">
+                            Translate
+                        </button>
+                    </div>
+
+                    <div id="asl-output" class="mt-8 flex flex-wrap gap-4 p-4 bg-zinc-900 rounded-lg min-h-[150px] border border-zinc-700">
+                        <!-- Simulated signs will be injected here by JavaScript -->
+                    </div>
+                </div>
+
+            </section>
+        </div>
+    </div>
+
+    <!-- Main Application JavaScript -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+
+            // --- 1. Three.js 3D Background ---
+            let scene, camera, renderer, particles;
+
+            function initThree() {
+                try {
+                    const container = document.getElementById('three-bg');
+                    if (!container) return;
+
+                    // Scene
+                    scene = new THREE.Scene();
+
+                    // Camera
+                    camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+                    camera.position.z = 5;
+
+                    // Renderer
+                    renderer = new THREE.WebGLRenderer({ alpha: true });
+                    renderer.setSize(window.innerWidth, window.innerHeight);
+                    renderer.setClearColor(0x000000, 0); // Transparent background
+                    container.appendChild(renderer.domElement);
+
+                    // Particle Field
+                    const particleCount = 5000;
+                    const positions = new Float32Array(particleCount * 3);
+                    const geometry = new THREE.BufferGeometry();
+
+                    for (let i = 0; i < particleCount * 3; i++) {
+                        positions[i] = (Math.random() - 0.5) * 15; // Spread particles
+                    }
+
+                    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+
+                    const material = new THREE.PointsMaterial({
+                        color: 0xffffff,
+                        size: 0.015, // Small particles
+                        transparent: true
+                    });
+
+                    particles = new THREE.Points(geometry, material);
+                    scene.add(particles);
+
+                    // Animation Loop
+                    function animate() {
+                        requestAnimationFrame(animate);
+                        
+                        // Slow rotation
+                        if (particles) {
+                            particles.rotation.y += 0.0002;
+                            particles.rotation.x += 0.0001;
+                        }
+
+                        renderer.render(scene, camera);
+                    }
+                    animate();
+
+                    // Handle Window Resize
+                    window.addEventListener('resize', () => {
+                        camera.aspect = window.innerWidth / window.innerHeight;
+                        camera.updateProjectionMatrix();
+                        renderer.setSize(window.innerWidth, window.innerHeight);
+                    });
+
+                } catch (error) {
+                    console.error("Three.js initialization failed:", error);
+                }
+            }
+
+
+            // --- 2. Profile Switching Logic ---
+            const profileCards = document.querySelectorAll('.profile-card');
+            const contentPanels = document.querySelectorAll('.content-panel');
+
+            function activateProfile(profileName) {
+                // Hide all content panels
+                contentPanels.forEach(panel => {
+                    panel.classList.add('hidden');
+                });
+
+                // Show the target content panel
+                const targetPanel = document.getElementById(`content-${profileName}`);
+                if (targetPanel) {
+                    targetPanel.classList.remove('hidden');
+                }
+
+                // Update active state on profile cards
+                profileCards.forEach(card => {
+                    if (card.dataset.profile === profileName) {
+                        card.classList.add('active', 'border-indigo-500');
+                    } else {
+                        card.classList.remove('active', 'border-indigo-500');
+                    }
+                });
+            }
+
+            // Add click event listeners to profile cards
+            profileCards.forEach(card => {
+                card.addEventListener('click', () => {
+                    activateProfile(card.dataset.profile);
+                });
+            });
+
+
+            // --- 3. ASL Translator Simulation Logic ---
+            const aslInput = document.getElementById('asl-input');
+            const translateBtn = document.getElementById('asl-translate-btn');
+            const aslOutput = document.getElementById('asl-output');
+
+            // Small dictionary for simulation
+            const signDictionary = {
+                "hello": "👋", "friend": "🤝", "love": "❤️", "you": "👉",
+                "me": "Me", "good": "👍", "bad": "👎", "help": "🆘",
+                "yes": "👍", "no": "🚫", "please": "🙏", "thank": "🙏",
+                "home": "🏠", "work": "💼", "eat": "🍎", "drink": "💧",
+                "what": "❓", "where": "❓", "why": "❓", "when": "❓",
+            };
+            
+            // Fallback for "finger-spelling" (simulated with first letter)
+            const letterSigns = {
+                'a': '🅰️', 'b': '🅱️', 'c': '©️', 'd': '🇩', 'e': '🇪', 'f': '🇫',
+                'g': '🇬', 'h': '🇭', 'i': 'ℹ️', 'j': '🇯', 'k': '🇰', 'l': '🇱',
+                'm': 'Ⓜ️', 'n': '🇳', 'o': '🅾️', 'p': '🅿️', 'q': '🇶', 'r': '®️',
+                's': '🇸', 't': '🇹', 'u': '🇺', 'v': '🇻', 'w': '🇼', 'x': '❌',
+                'y': '🇾', 'z': '🇿'
+            };
+
+            function translateToASL() {
+                const text = aslInput.value.toLowerCase().trim();
+                aslOutput.innerHTML = ''; // Clear previous output
+
+                if (!text) return;
+
+                const words = text.replace(/[.,!?;]/g, '').split(/\s+/);
+
+                words.forEach((word, index) => {
+                    let sign = signDictionary[word];
+                    let isFallback = false;
+                    let originalWord = word;
+
+                    if (!sign) {
+                        const firstLetter = word[0];
+                        if (firstLetter) {
+                            sign = letterSigns[firstLetter] || '❓';
+                            isFallback = true;
+                        } else {
+                            sign = '❓';
+                        }
+                    }
+                    
+                    // Create and append the sign card
+                    if (sign) {
+                        setTimeout(() => {
+                            const card = document.createElement('div');
+                            card.className = 'flex flex-col items-center bg-zinc-700 p-4 rounded-lg shadow-md animate-bounce-sm w-28 h-28 justify-center';
+                            
+                            let fallbackText = isFallback ? `(spelled: '${originalWord}')` : `'${originalWord}'`;
+                            
+                            card.innerHTML = `
+                                <div class="text-5xl mb-2">${sign}</div>
+                                <span class="text-xs font-mono text-center ${isFallback ? 'text-yellow-400' : 'text-zinc-300'}">
+                                    ${fallbackText}
+                                </span>
+                            `;
+                            aslOutput.appendChild(card);
+                        }, index * 200); // Stagger the animation
+                    }
+                });
+            }
+
+            // Add event listeners for ASL translator
+            if (translateBtn) {
+                translateBtn.addEventListener('click', translateToASL);
+            }
+            if (aslInput) {
+                // Allow pressing Enter to translate
+                aslInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        translateToASL();
+                    }
+                });
+            }
+
+
+            // --- 4. Initial Application State ---
+            initThree();
+            // Note: ADHD content is pre-rendered with tooltips, so no JS init is needed for it.
+            
+            // Set the default active profile on load
+            activateProfile('standard');
+
+        });
+    </script>
+
+</body>
+</html>
